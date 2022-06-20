@@ -30,17 +30,7 @@ namespace Asos.CodeTest
                 return archivedCustomer;
             }
 
-            var failedRequests = GetNumberOfFailedRequest();
-
-            CustomerResponse customerResponse;
-            if (failedRequests > 100 && _settings.IsFailoverModeEnabled)
-            {
-                customerResponse = await _failOverCustomerDataAccessHelper.GetCustomerById(customerId);
-            }
-            else
-            {
-                customerResponse = await _customerDataAccess.LoadCustomerAsync(customerId);
-            }
+            var customerResponse = await GetCustomerFromRelevantStore(customerId);
 
             Customer customer;
             if (customerResponse.IsArchived)
@@ -53,6 +43,27 @@ namespace Asos.CodeTest
             }
 
             return customer;
+        }
+
+        private async Task<CustomerResponse> GetCustomerFromRelevantStore(int customerId)
+        {
+            int failedRequests = 0;
+            if (_settings.IsFailoverModeEnabled)
+            {
+                failedRequests = GetNumberOfFailedRequest();
+            }
+
+            CustomerResponse customerResponse;
+            if (failedRequests > 100)
+            {
+                customerResponse = await _failOverCustomerDataAccessHelper.GetCustomerById(customerId);
+            }
+            else
+            {
+                customerResponse = await _customerDataAccess.LoadCustomerAsync(customerId);
+            }
+
+            return customerResponse;
         }
 
         private int GetNumberOfFailedRequest()
